@@ -10,24 +10,13 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7d';
 
-/* ===============================
-   Helper JWT
-================================ */
 function signAccessToken(user) {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES }
-  );
+  return jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 }
-
 function signRefreshToken(user) {
   return jwt.sign({ id: user.id }, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
 }
 
-/* ===============================
-   REGISTER
-================================ */
 async function register(req, res) {
   try {
     const { error, value } = registerSchema.validate(req.body);
@@ -35,6 +24,7 @@ async function register(req, res) {
 
     const { nik, phone, email, name, gender, password } = value;
 
+    // check duplicate nik/email
     const [nikRows] = await pool.query('SELECT id FROM users WHERE nik = ?', [nik]);
     if (nikRows.length) return res.status(409).json({ error: 'NIK sudah terdaftar' });
 
@@ -49,89 +39,68 @@ async function register(req, res) {
 
     return res.status(201).json({ message: 'Registrasi berhasil', userId: result.insertId });
   } catch (err) {
-    console.error('❌ Register error:', err);
+    console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
 }
 
-/* ===============================
-   LOGIN
-================================ */
 async function login(req, res) {
   try {
     const { error, value } = loginSchema.validate(req.body);
+    console
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     const { email, password } = value;
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0) return res.status(401).json({ error: 'Email tidak terdaftar' });
+    if (rows.length === 0) return res.status(401).json({ error: 'Invalid email' });
 
     const user = rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Password salah' });
+    if (!ok) return res.status(401).json({ error: 'Invalid password' });
 
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user);
+
+    // store refresh token in DB with expiry
     await addRefreshToken(user.id, refreshToken);
 
+    // set cookies
     const cookieOptions = {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE === 'true',
+      // optional: maxAge based on REFRESH_EXPIRES
     };
 
-    // Simpan cookie JWT
-    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 }); // 1 jam
-    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 }); // 7 hari
+    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 }); // 1 hour
+    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 }); // 7 days
 
-    // tentukan redirect path berdasarkan role
-    let redirectTo = '/dashboard';
-    if (user.role === 'admin') redirectTo = '/admin';
-
-    return res.json({
-      message: 'Login berhasilll',
-      role: user.role,
-      redirect: redirectTo,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email
-      }
-    });
+    return res.json({ message: 'Login successful', role: user.role });
   } catch (err) {
-    console.error('❌ Login error:', err);
+    console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
 }
 
-/* ===============================
-   LOGOUT
-================================ */
 async function logout(req, res) {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (refreshToken) {
-      try {
-        const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-        await removeRefreshTokenForUser(decoded.id, refreshToken);
-      } catch {
-        // token expired / invalid → abaikan aja
-      }
+      // delete from DB
+      const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+      await removeRefreshTokenForUser(decoded.id, refreshToken).catch(()=>{});
     }
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return res.json({ message: 'Logout berhasil' });
+    return res.json({ message: 'Logged out' });
   } catch (err) {
-    console.error('❌ Logout error:', err);
+    console.error(err);
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return res.status(200).json({ message: 'Logout fallback' });
+    return res.status(200).json({ message: 'Logged out' });
   }
 }
 
-/* ===============================
-   REFRESH TOKEN
-================================ */
 async function refreshToken(req, res) {
   try {
     const token = req.cookies?.refreshToken;
@@ -140,31 +109,25 @@ async function refreshToken(req, res) {
     const decoded = jwt.verify(token, REFRESH_SECRET);
     const userId = decoded.id;
 
-    const [rows] = await pool.query(
-      'SELECT * FROM refresh_tokens WHERE user_id = ? AND token = ?',
-      [userId, token]
-    );
-    if (rows.length === 0)
-      return res.status(401).json({ error: 'Invalid refresh token' });
+    // verify token exists in DB
+    const [rows] = await pool.query('SELECT * FROM refresh_tokens WHERE user_id = ? AND token = ?', [userId, token]);
+    if (rows.length === 0) return res.status(401).json({ error: 'Invalid refresh token' });
 
+    // create new access token
     const [userRows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-    if (userRows.length === 0)
-      return res.status(401).json({ error: 'User not found' });
+    if (userRows.length === 0) return res.status(401).json({ error: 'User not found' });
 
     const user = userRows[0];
     const newAccess = signAccessToken(user);
-
     res.cookie('accessToken', newAccess, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE === 'true'
     });
-
-    return res.json({ message: 'Access token diperbarui' });
+    return res.json({ message: 'Access token refreshed' });
   } catch (err) {
-    console.error('❌ Refresh token error:', err);
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    console.error(err);
+    return res.status(401).json({ error: 'Invalid token' });
   }
 }
 

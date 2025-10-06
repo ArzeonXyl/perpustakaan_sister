@@ -19,5 +19,12 @@ router.get('/me', authMiddleware, (req, res) => {
 router.get('/admin/dashboard', authMiddleware, requireRole('admin'), (req, res) => {
   res.json({ message: 'Welcome admin' });
 });
+router.post('/logout', (req, res) => {
+  res.clearCookie('token') // hapus cookie JWT admin
+  res.status(200).json({
+    message: 'Logout berhasil',
+    redirect: '/login' // arahkan balik ke login admin
+  })
+});
 
 module.exports = router;

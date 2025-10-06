@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../services/api";
 
+
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,8 +12,9 @@ export default function LoginForm() {
       console.log("Kirim body:", { email, password });
       const res = await api.post("/login", { email, password });
       console.log("Response:", res.data);
-
-      console.log(res.data);
+      if (res.data.redirect) {
+        window.location.href = res.data.redirect; // ini yang benar-benar memindahkan user
+      }
     } catch (err) {
       alert(err.response?.data?.error || "Login gagal");
     }

@@ -1,15 +1,15 @@
 require('dotenv').config();
-const pool = require('./db');
+const pool = require('./src/db');
 const bcrypt = require('bcrypt');
 
 async function seed() {
   try {
-    const nik = '0000000000000001';
+    const nik = '0000000000000002';
     const phone = '081234567890';
-    const email = 'admin@perpus.test';
-    const name = 'Super Admin';
+    const email = 'admin@gmail.com';
+    const name = 'Admin';
     const gender = 'L';
-    const password = 'AdminPass123'; // ganti pas real
+    const password = 'admin123'; // ganti pas real
     const hash = await bcrypt.hash(password, 10);
 
     // skip if exists
