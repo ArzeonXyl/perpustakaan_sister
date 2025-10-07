@@ -1,18 +1,18 @@
-import { useState } from "react";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+
+import AdminDashboard from './pages/admin/AdminDashboard'; // kalau mau halaman admin React custom
 
 function App() {
-  const [page, setPage] = useState("login");
-
   return (
-    <div>
-      <div className="flex justify-center mt-4 space-x-4">
-        <button onClick={() => setPage("login")} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Login</button>
-        <button onClick={() => setPage("register")} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">Register</button>
-      </div>
-      {page === "login" ? <LoginPage /> : <RegisterPage />}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

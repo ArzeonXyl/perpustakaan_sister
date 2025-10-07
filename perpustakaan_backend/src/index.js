@@ -1,13 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const setupAdmin = require('./admin/admin')
-const cookieParser = require('cookie-parser');
-const authRoutes = require('./routes/authRoutes');
-const cors = require('cors');
+// src/index.js
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import setupAdmin from './admin/admin.js';
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/authRoutes.js';
+import cors from 'cors';
+import sequelize from './models/index.js';
+
 
 const app = express();
-
-
 
 app.use(express.json());
 app.use(cookieParser());
@@ -18,6 +21,9 @@ app.use(cors({
 
 // bungkus semua auth route pakai prefix /api
 app.use('/api', authRoutes);
-setupAdmin(app)
+
+// setup AdminJS
+await setupAdmin(app);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

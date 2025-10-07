@@ -1,16 +1,17 @@
-const express = require('express');
+// src/routes/authRoutes.js
+import express from 'express';
 const router = express.Router();
 
-const { register, login, logout, refreshToken } = require('../controllers/authController');
-const { authMiddleware, requireRole } = require('../middlewares/authMiddleware');
+import { register, login, logout, refreshToken } from '../controllers/authController.js';
+import { authMiddleware, requireRole } from '../middlewares/authMiddleware.js';
 
-// public
+// public routes
 router.post('/register', register);       // buat peminjam
 router.post('/login', login);             // login admin/peminjam
 router.post('/refresh', refreshToken);
 router.post('/logout', logout);
 
-// protected examples
+// protected example
 router.get('/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
@@ -19,12 +20,13 @@ router.get('/me', authMiddleware, (req, res) => {
 router.get('/admin/dashboard', authMiddleware, requireRole('admin'), (req, res) => {
   res.json({ message: 'Welcome admin' });
 });
-router.post('/logout', (req, res) => {
-  res.clearCookie('token') // hapus cookie JWT admin
-  res.status(200).json({
-    message: 'Logout berhasil',
-    redirect: '/login' // arahkan balik ke login admin
-  })
+
+// custom logout route untuk admin
+router.get('/admin/logout', (req, res) => {
+  res.clearCookie('token');      
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+  res.redirect('http://localhost:5173/login'); // arahkan ke frontend login
 });
 
-module.exports = router;
+export default router;

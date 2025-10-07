@@ -1,39 +1,65 @@
-async function setupAdmin(app) {
-  const { default: AdminJS } = await import('adminjs')
-  const AdminJSExpress = await import('@adminjs/express')
+import AdminJS from 'adminjs';
+import AdminJSExpress from '@adminjs/express';
+import AdminJSSequelize from '@adminjs/sequelize';
+import { ComponentLoader } from 'adminjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-  const admin = new AdminJS({
+import UserResource from './resources/UserResource.js';
+import { authMiddleware, requireRole } from '../middlewares/authMiddleware.js';
+
+AdminJS.registerAdapter(AdminJSSequelize);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 🔧 Setup ComponentLoader
+const componentLoader = new ComponentLoader();
+
+// 📦 Load Dashboard Component
+const dashboardComponent = componentLoader.add(
+  'Dashboard',
+  path.join(__dirname, './components/Dashboard.jsx')
+);
+
+// 📦 Load TopBar Component (inject logout button)
+const topBarComponent = componentLoader.add(
+  'TopBarWithLogout',
+  path.join(__dirname, './components/TopBarWithLogout.jsx')
+);
+
+const setupAdmin = async (app) => {
+  const adminJs = new AdminJS({
     rootPath: '/admin',
+    resources: [UserResource],
     branding: {
-      companyName: 'Perpustakaan Dashboard',
+      companyName: 'ifno',
       softwareBrothers: false,
-    },
-    pages: {
-      logout: {
-        label: '🚪 Logout',
-        icon: 'Logout', // biar tampil ikon logout di sidebar
-        handler: async (req, res, context) => {
-          // Hapus cookie token
-          res.clearCookie('token')
-
-          return {
-            notice: {
-              message: 'Logout berhasil',
-              type: 'success',
-            },
-            // Redirect ke login page Vite
-            redirectUrl: 'http://localhost:5173/login',
-          }
-        },
-        component: false, // Gak perlu page baru
+      components: {
+        TopBar: topBarComponent, // ✅ inject custom TopBar
       },
     },
-  })
+    dashboard: {
+      component: dashboardComponent, // ✅ custom dashboard
+    },
+    componentLoader,
+  });
 
-  const adminRouter = AdminJSExpress.buildRouter(admin)
-  app.use(admin.options.rootPath, adminRouter)
+  const adminRouter = AdminJSExpress.buildRouter(adminJs);
 
-  console.log(`✅ AdminJS ready at http://localhost:3000${admin.options.rootPath}`)
-}
+  app.use(
+    '/admin',
+    authMiddleware,
+    requireRole('admin'),
+    (req, res, next) => {
+      adminJs.options.currentUser = {
+        email: req.user.email,
+        role: req.user.role,
+      };
+      next();
+    },
+    adminRouter
+  );
+};
 
-module.exports = setupAdmin
+export default setupAdmin;

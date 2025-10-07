@@ -1,9 +1,11 @@
-require('dotenv').config();
-const pool = require('../db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { registerSchema, loginSchema } = require('../validators/authValidator');
-const { addRefreshToken, removeRefreshTokenForUser } = require('../utils/refreshHelper');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import pool from '../db.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { registerSchema, loginSchema } from '../validators/authValidator.js';
+import { addRefreshToken, removeRefreshTokenForUser } from '../utils/refreshHelper.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
@@ -28,7 +30,7 @@ function signRefreshToken(user) {
 /* ===============================
    REGISTER
 ================================ */
-async function register(req, res) {
+export async function register(req, res) {
   try {
     const { error, value } = registerSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -57,7 +59,7 @@ async function register(req, res) {
 /* ===============================
    LOGIN
 ================================ */
-async function login(req, res) {
+export async function login(req, res) {
   try {
     const { error, value } = loginSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -80,16 +82,14 @@ async function login(req, res) {
       secure: process.env.NODE_ENV === 'production',
     };
 
-    // Simpan cookie JWT
-    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 }); // 1 jam
-    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 }); // 7 hari
+    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 });
+    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 });
 
-    // tentukan redirect path berdasarkan role
     let redirectTo = '/dashboard';
     if (user.role === 'admin') redirectTo = '/admin';
 
     return res.json({
-      message: 'Login berhasilll',
+      message: 'Login berhasil',
       role: user.role,
       redirect: redirectTo,
       user: {
@@ -107,7 +107,7 @@ async function login(req, res) {
 /* ===============================
    LOGOUT
 ================================ */
-async function logout(req, res) {
+export async function logout(req, res) {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (refreshToken) {
@@ -115,24 +115,38 @@ async function logout(req, res) {
         const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
         await removeRefreshTokenForUser(decoded.id, refreshToken);
       } catch {
-        // token expired / invalid → abaikan aja
+        // token expired / invalid → abaikan
       }
     }
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    return res.json({ message: 'Logout berhasil' });
+
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+    });
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+    });
+
+    // ✅ Redirect ke frontend login
+    return res.redirect('http://localhost:5173/login');
   } catch (err) {
     console.error('❌ Logout error:', err);
+
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return res.status(200).json({ message: 'Logout fallback' });
+
+    // ✅ Tetap redirect meskipun error
+    return res.redirect('http://localhost:5173/login');
   }
 }
 
 /* ===============================
    REFRESH TOKEN
 ================================ */
-async function refreshToken(req, res) {
+export async function refreshToken(req, res) {
   try {
     const token = req.cookies?.refreshToken;
     if (!token) return res.status(401).json({ error: 'No refresh token' });
@@ -167,5 +181,3 @@ async function refreshToken(req, res) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
-
-module.exports = { register, login, logout, refreshToken };

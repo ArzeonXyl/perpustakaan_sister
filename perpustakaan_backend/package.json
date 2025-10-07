@@ -1,13 +1,15 @@
 {
   "name": "perpustakaan_backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "@adminjs/express": "^6.1.1",
+    "@adminjs/design-system": "^4.1.1",
+    "@adminjs/express": "^5.1.0",
     "@adminjs/sequelize": "^4.1.1",
     "adminjs": "^7.8.17",
     "bcrypt": "^5.1.1",
