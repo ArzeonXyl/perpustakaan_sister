@@ -6,26 +6,26 @@ dotenv.config();
 
 async function seed() {
   try {
-    const nik = '0000000000000002';
-    const phone = '081234567890';
-    const email = 'admin@gmail.com';
-    const name = 'Admin';
+    const nik = '0000000000000003';
+    const phone = '081234567891';
+    const email = 'peminjam@gmail.com';
+    const name = 'Peminjam Satu';
     const gender = 'L';
-    const password = 'admin123'; // ganti pas real
+    const password = 'peminjam123'; // ganti pas real
     const hash = await bcrypt.hash(password, 10);
 
     // skip if exists
     const [rows] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (rows.length) {
-      console.log('Admin sudah ada');
+      console.log('Peminjam sudah ada');
       process.exit(0);
     }
 
     const [r] = await pool.query(
       'INSERT INTO users (nik, phone, email, name, gender, password_hash, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [nik, phone, email, name, gender, hash, 'admin']
+      [nik, phone, email, name, gender, hash, 'peminjam']
     );
-    console.log('Admin created with id', r.insertId);
+    console.log('Peminjam created with id', r.insertId);
     process.exit(0);
   } catch (err) {
     console.error(err);
