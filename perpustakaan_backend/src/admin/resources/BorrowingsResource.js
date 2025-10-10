@@ -1,37 +1,6 @@
-import AdminJS from 'adminjs';
-import AdminJSExpress from '@adminjs/express';
-import AdminJSSequelize from '@adminjs/sequelize';
-import { ComponentLoader } from 'adminjs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import db from '../../models/index.js';
 
-import db from '../models/index.js';
-import UserResource from './resources/UserResource.js';
-import CategoryResource from './resources/CategoryResource.js';
-import { authMiddleware, requireRole } from '../middlewares/authMiddleware.js';
-
-AdminJS.registerAdapter(AdminJSSequelize);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 🔧 Setup ComponentLoader
-const componentLoader = new ComponentLoader();
-
-// 📦 Load Dashboard Component
-const dashboardComponent = componentLoader.add(
-  'Dashboard',
-  path.join(__dirname, './components/Dashboard.jsx')
-);
-
-// 📦 Load TopBar Component
-const topBarComponent = componentLoader.add(
-  'TopBarWithLogout',
-  path.join(__dirname, './components/TopBarWithLogout.jsx')
-);
-
-// ✅ Define Borrowings resource with approval logic
-const BorrowingsResource = {
+export default {
   resource: db.Borrowings,
   options: {
     navigation: 'Transaksi',
@@ -80,6 +49,7 @@ const BorrowingsResource = {
         isVisible: ({ record }) => record?.params?.status === 'Menunggu Persetujuan',
         handler: async (req, res, context) => {
           const { record } = context;
+
           await record.update({ status: 'Dipinjam' });
 
           return {
@@ -100,6 +70,7 @@ const BorrowingsResource = {
         isVisible: ({ record }) => record?.params?.status === 'Menunggu Persetujuan',
         handler: async (req, res, context) => {
           const { record } = context;
+
           await record.update({ status: 'Ditolak' });
 
           return {
@@ -115,62 +86,3 @@ const BorrowingsResource = {
   },
 };
 
-// ✅ Define Book resource
-const bookResource = {
-  resource: db.Book,
-  options: {
-    navigation: 'Katalog',
-    properties: {
-      id: { isVisible: false },
-      title: { isTitle: true },
-      author: { position: 2 },
-      publication_year: { position: 3 },
-      quantity: { position: 4 },
-      category_id: {
-        reference: 'categories',
-        position: 5,
-      },
-    },
-  },
-};
-
-const setupAdmin = async (app) => {
-  const adminJs = new AdminJS({
-    rootPath: '/admin',
-    resources: [
-      UserResource,
-      BorrowingsResource,
-      bookResource,
-      CategoryResource,
-    ],
-    branding: {
-      companyName: 'ifno',
-      softwareBrothers: false,
-      components: {
-        TopBar: topBarComponent,
-      },
-    },
-    dashboard: {
-      component: dashboardComponent,
-    },
-    componentLoader,
-  });
-
-  const adminRouter = AdminJSExpress.buildRouter(adminJs);
-
-  app.use(
-    '/admin',
-    authMiddleware,
-    requireRole('admin'),
-    (req, res, next) => {
-      adminJs.options.currentUser = {
-        email: req.user.email,
-        role: req.user.role,
-      };
-      next();
-    },
-    adminRouter
-  );
-};
-
-export default setupAdmin;

@@ -1,4 +1,3 @@
-// src/middlewares/authMiddleware.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -51,3 +50,13 @@ export function requireRole(role) {
     next();
   };
 }
+
+/**
+ * Middleware siap pakai untuk user biasa
+ */
+export const authUser = authMiddleware;
+
+/**
+ * Middleware siap pakai untuk admin
+ */
+export const authAdmin = [authMiddleware, requireRole('admin')];

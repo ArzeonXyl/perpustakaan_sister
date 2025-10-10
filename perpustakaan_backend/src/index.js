@@ -7,7 +7,9 @@ import setupAdmin from './admin/admin.js';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
-import sequelize from './models/index.js';
+import bookRoutes from './routes/bookRoutes.js';
+import borrowingsRoutes from './routes/borrowingsRoutes.js';
+
 
 
 const app = express();
@@ -21,6 +23,8 @@ app.use(cors({
 
 // bungkus semua auth route pakai prefix /api
 app.use('/api', authRoutes);
+app.use('/api', bookRoutes);
+app.use('/api', borrowingsRoutes);
 
 // setup AdminJS
 await setupAdmin(app);

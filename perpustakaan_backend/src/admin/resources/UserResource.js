@@ -1,13 +1,12 @@
-import User from '../../models/user.js';
+import db from '../../models/index.js';
 
 export default {
-  resource: User,
+  resource: db.User,
   options: {
+    navigation: 'Pengguna',
     properties: {
       password_hash: { isVisible: false },
-    },
-    actions: {
-      delete: { isAccessible: false },
+      email: { isTitle: true },
     },
   },
 };

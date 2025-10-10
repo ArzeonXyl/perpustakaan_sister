@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Home from './pages/Home';
-import DashboardPeminjam from './pages/peminjam/dashboard';
+import DashboardPeminjam from './pages/peminjam/DashboardPeminjam';
 
 function App() {
   return (
@@ -11,7 +11,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/peminjam/dashboard" element={<DashboardPeminjam />} />
+        <Route path="/dashboard" element={<DashboardPeminjam />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,10 +1,25 @@
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
-dotenv.config();
+import sequelize from '../config/sequelize.js';
+import { Sequelize, DataTypes } from 'sequelize';
+import BookModel from './book.js';
+import CategoryModel from './category.js';
+import UserModel from './user.js';
+import BorrowingsModel from './borrowings.js';
 
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-  host: process.env.DB_HOST,
-  dialect: 'mysql',
+
+
+
+const db = {};
+
+db.Sequelize = Sequelize;
+db.sequelize = sequelize;
+
+db.Book = BookModel(sequelize, DataTypes);
+db.Category = CategoryModel(sequelize, DataTypes);
+db.User = UserModel(sequelize, DataTypes);
+db.Borrowings = BorrowingsModel(sequelize, DataTypes);
+
+Object.values(db).forEach(model => {
+  if (model.associate) model.associate(db);
 });
 
-export default sequelize;
+export default db;
