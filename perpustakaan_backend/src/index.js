@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 import bookRoutes from './routes/bookRoutes.js';
 import borrowingsRoutes from './routes/borrowingsRoutes.js';
+import profileRoutes from './routes/profile.js';
 
 
 
@@ -25,6 +26,8 @@ app.use(cors({
 app.use('/api', authRoutes);
 app.use('/api', bookRoutes);
 app.use('/api', borrowingsRoutes);
+app.use('/api', profileRoutes);
+
 
 // setup AdminJS
 await setupAdmin(app);

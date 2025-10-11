@@ -3,10 +3,12 @@ import db from '../models/index.js';
 // 🔹 User request peminjaman
 export const requestBorrowing = async (req, res) => {
   try {
-    const { user_id, book_id } = req.body;
+    const user_id = req.user.id;
+    const { book_id } = req.body;
 
-    const user = await db.User.findByPk(user_id);
-    if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+    if (!book_id) {
+      return res.status(400).json({ error: 'book_id wajib diisi' });
+    }
 
     const book = await db.Book.findByPk(book_id);
     if (!book) return res.status(404).json({ error: 'Buku tidak ditemukan' });
@@ -46,7 +48,13 @@ export const approveBorrowing = async (req, res) => {
       return res.status(400).json({ error: 'Request tidak valid atau sudah diproses' });
     }
 
+    const book = await db.Book.findByPk(borrowing.book_id);
+    if (!book || book.quantity <= 0) {
+      return res.status(400).json({ error: 'Stok buku tidak tersedia' });
+    }
+
     await borrowing.update({ status: 'Dipinjam' });
+    await book.decrement('quantity');
 
     res.json({
       message: 'Peminjaman disetujui',
@@ -104,6 +112,9 @@ export const returnBorrowing = async (req, res) => {
       fine_amount: fine,
     });
 
+    const book = await db.Book.findByPk(borrowing.book_id);
+    if (book) await book.increment('quantity');
+
     res.json({
       message: `Buku berhasil dikembalikan. Status: ${status}, Denda: Rp${fine}`,
       borrowing,
@@ -119,7 +130,7 @@ export const getUserBorrowings = async (req, res) => {
   try {
     const records = await db.Borrowings.findAll({
       where: { user_id: req.user.id },
-      include: [{ model: db.Book }],
+      include: [{ model: db.Book, as: 'book' }], // ✅ pakai alias 'book'
       order: [['borrow_date', 'DESC']],
     });
 

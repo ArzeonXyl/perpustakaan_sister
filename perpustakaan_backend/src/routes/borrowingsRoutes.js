@@ -3,8 +3,8 @@ import {
   requestBorrowing,       // user request peminjaman
   approveBorrowing,       // admin menyetujui
   rejectBorrowing,        // admin menolak
-  getUserBorrowings,      // user melihat histori peminjaman
   returnBorrowing,        // admin mengembalikan buku
+  getUserBorrowings       // user melihat histori peminjaman
 } from '../controllers/borrowingsController.js';
 
 import { authUser, authAdmin } from '../middlewares/authMiddleware.js';

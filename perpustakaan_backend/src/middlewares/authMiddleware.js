@@ -6,14 +6,14 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
- * Middleware untuk autentikasi JWT.
+ * Middleware utama untuk verifikasi JWT.
  * Mendukung token dari cookie atau header Authorization.
  */
-export function authMiddleware(req, res, next) {
+export function verifyToken(req, res, next) {
   try {
     const token =
       req.cookies?.accessToken ||
-      (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+      (req.headers.authorization?.startsWith('Bearer ')
         ? req.headers.authorization.split(' ')[1]
         : null);
 
@@ -32,8 +32,13 @@ export function authMiddleware(req, res, next) {
 }
 
 /**
- * Middleware untuk membatasi akses berdasarkan peran.
- * Contoh: requireRole('admin')
+ * Alias middleware untuk pengguna biasa
+ */
+export const authMiddleware = verifyToken;
+export const authUser = verifyToken;
+
+/**
+ * Middleware untuk membatasi akses berdasarkan peran
  */
 export function requireRole(role) {
   return (req, res, next) => {
@@ -52,11 +57,6 @@ export function requireRole(role) {
 }
 
 /**
- * Middleware siap pakai untuk user biasa
+ * Middleware gabungan untuk admin
  */
-export const authUser = authMiddleware;
-
-/**
- * Middleware siap pakai untuk admin
- */
-export const authAdmin = [authMiddleware, requireRole('admin')];
+export const authAdmin = [verifyToken, requireRole('admin')];
