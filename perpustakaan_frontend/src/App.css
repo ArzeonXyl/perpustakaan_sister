@@ -1,3 +1,13 @@
+body {
+    overflow-y: scroll !important; /* Paksa scrollbar selalu ada */
+    padding-right: 0px !important; /* Mencegah bug padding yang ditambahkan browser */
+}
+
+/* Menyembunyikan scrollbar di Webkit/Chrome (Jika plugin belum dipasang) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;

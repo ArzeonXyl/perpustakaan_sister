@@ -1,152 +1,201 @@
 import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBook,
-  faBookOpen,
-  faBookReader,
-  faJournalWhills,
-  faAtlas,
-  faScroll,
-  faHandHolding,
+    faBook,
+    faBookOpen,
+    faBookReader,
+    faJournalWhills,
+    faAtlas,
+    faScroll,
+    faHandHolding,
+    faSearch, // 🔥 IMPOR IKON SEARCH DARI FONT AWESOME 🔥
 } from '@fortawesome/free-solid-svg-icons';
 
 const icons = [faBook, faBookOpen, faBookReader, faJournalWhills, faAtlas, faScroll];
 
 export default function BookCatalog() {
-  const [books, setBooks] = useState([]);
-  const [selectedBook, setSelectedBook] = useState(null);
+    const [books, setBooks] = useState([]);
+    const [selectedBook, setSelectedBook] = useState(null);
+    const [searchTerm, setSearchTerm] = useState(''); // State untuk kunci pencarian
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const res = await fetch('/api/list-book', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        const data = await res.json();
-        const bookList = Array.isArray(data.books) ? data.books : [];
-        setBooks(bookList);
-      } catch (err) {
-        console.error('❌ Gagal ambil data buku:', err);
-        setBooks([]);
-      }
+    useEffect(() => {
+        const fetchBooks = async () => {
+            try {
+                // ... (Logika fetchBooks Anda) ...
+                const res = await fetch('/api/list-book', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+                const data = await res.json();
+                const bookList = Array.isArray(data.books) ? data.books : [];
+                setBooks(bookList);
+            } catch (err) {
+                console.error('❌ Gagal ambil data buku:', err);
+                setBooks([]);
+            }
+        };
+
+        fetchBooks();
+    }, []);
+
+    const handleBorrow = async (bookId) => {
+        try {
+            // ... (Logika handleBorrow Anda) ...
+            const res = await fetch('/api/borrowings/request', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ book_id: bookId }),
+            });
+
+            if (!res.ok) throw new Error('Gagal meminjam buku');
+
+            const result = await res.json();
+            console.log('✅ Berhasil pinjam:', result);
+            alert('Buku berhasil dipinjam!');
+            setSelectedBook(null);
+        } catch (err) {
+            console.error('❌ Error saat pinjam:', err);
+            alert('Gagal meminjam buku.');
+        }
     };
 
-    fetchBooks();
-  }, []);
+    // 🔥 LOGIKA FILTERING BUKU 🔥
+    const filteredBooks = books.filter(book => {
+      const query = searchTerm.toLowerCase().trim(); // Tambahkan trim() untuk hapus spasi
+      
+      if (!query) {
+          return true; // Tampilkan semua buku jika search term kosong
+      }
 
-  const handleBorrow = async (bookId) => {
-    try {
-      const res = await fetch('/api/borrowings/request', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ book_id: bookId }),
-      });
+      // Fungsi helper untuk mendapatkan nilai string yang aman
+      const safeString = (value) => String(value || '').toLowerCase();
 
-      if (!res.ok) throw new Error('Gagal meminjam buku');
+      // Lakukan pencarian di tiga kolom: title, author, description
+      return (
+          safeString(book.title).includes(query) ||
+          safeString(book.author).includes(query) 
+      );
+    });
 
-      const result = await res.json();
-      console.log('✅ Berhasil pinjam:', result);
-      alert('Buku berhasil dipinjam!');
-      setSelectedBook(null);
-    } catch (err) {
-      console.error('❌ Error saat pinjam:', err);
-      alert('Gagal meminjam buku.');
+    // Logika pengelompokan buku (chunking) diubah untuk menggunakan filteredBooks
+    const chunkedBooks = [];
+    for (let i = 0; i < filteredBooks.length; i += 6) {
+        chunkedBooks.push(filteredBooks.slice(i, i + 6));
     }
-  };
 
-  const chunkedBooks = [];
-  for (let i = 0; i < books.length; i += 6) {
-    chunkedBooks.push(books.slice(i, i + 6));
-  }
+    const noResults = filteredBooks.length === 0 && searchTerm !== '';
+    const isLoading = books.length === 0 && searchTerm === '';
 
-  return (
-    <>
-      <div className="space-y-8">
-        {chunkedBooks.map((row, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex gap-4 overflow-x-auto px-2 py-1 scroll-smooth transition-all duration-500"
-          >
-            {row.map((book, index) => {
-              const icon = icons[(rowIndex * 6 + index) % icons.length];
-
-              return (
-                <div
-                  key={book.id}
-                  className="min-w-[160px] bg-white shadow rounded overflow-hidden flex flex-col justify-between hover:scale-105 transition-transform duration-300"
-                >
-                  <div className="w-full h-40 flex items-center justify-center text-blue-600 text-3xl">
-                    <FontAwesomeIcon icon={icon} />
-                  </div>
-
-                  <div className="p-2">
-                    <h2 className="text-sm font-semibold text-gray-800 truncate">{book.title}</h2>
-                    <p className="text-xs text-gray-600 truncate">Penulis: {book.author}</p>
-                    <p className="text-xs text-gray-600">Stok: {book.quantity}</p>
-                    <button
-                      onClick={() => setSelectedBook(book)}
-                      className="mt-2 w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-                    >
-                      Detail
-                    </button>
-                  </div>
+    return (
+        <>
+            {/* 🔥 SEARCH INPUT FIELD (Menggunakan Font Awesome) 🔥 */}
+            <div className="mb-6 flex items-center p-3 border border-gray-300 rounded-xl bg-gray-50 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition duration-200">
+                <FontAwesomeIcon icon={faSearch} className="text-gray-500 mr-3" />
+                <input
+                    type="text"
+                    placeholder="Cari buku berdasarkan judul, penulis, atau deskripsi..."
+                    className="flex-1 bg-transparent focus:outline-none text-gray-700"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            
+            {/* Tampilan Buku (Menggunakan filteredBooks) */}
+            {isLoading ? (
+                <div className="text-center py-10 text-gray-500">Memuat katalog buku...</div>
+            ) : noResults ? (
+                <div className="text-center py-10 text-gray-500">
+                    Tidak ditemukan buku dengan kata kunci "{searchTerm}".
                 </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+            ) : (
+                <div className="space-y-8">
+                    {chunkedBooks.map((row, rowIndex) => (
+                        <div
+                            key={rowIndex}
+                            className="flex gap-4 overflow-x-auto px-2 py-1 scroll-smooth transition-all duration-500"
+                        >
+                            {row.map((book, index) => {
+                                const icon = icons[(rowIndex * 6 + index) % icons.length];
 
-      {/* Modal */}
-      {selectedBook && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md relative">
-            <button
-              onClick={() => setSelectedBook(null)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
+                                return (
+                                    <div
+                                        key={book.id}
+                                        className="min-w-[160px] bg-white shadow rounded overflow-hidden flex flex-col justify-between hover:scale-105 transition-transform duration-300"
+                                    >
+                                        <div className="w-full h-40 flex items-center justify-center text-blue-600 text-3xl">
+                                            <FontAwesomeIcon icon={icon} />
+                                        </div>
 
-            <div className="flex items-center gap-3 mb-4">
-              <FontAwesomeIcon icon={faHandHolding} className="text-blue-600 text-xl" />
-              <h2 className="text-lg font-bold text-gray-800">{selectedBook.title}</h2>
-            </div>
+                                        <div className="p-2">
+                                            <h2 className="text-sm font-semibold text-gray-800 truncate">{book.title}</h2>
+                                            <p className="text-xs text-gray-600 truncate">Penulis: {book.author}</p>
+                                            <p className="text-xs text-gray-600">Stok: {book.quantity}</p>
+                                            <button
+                                                onClick={() => setSelectedBook(book)}
+                                                className="mt-2 w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                            >
+                                                Detail
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            <p className="text-sm text-gray-700 mb-2">
-              <strong>Penulis:</strong> {selectedBook.author}
-            </p>
-            <p className="text-sm text-gray-700 mb-2">
-              <strong>Tahun:</strong> {selectedBook.publication_year}
-            </p>
-            <p className="text-sm text-gray-700 mb-2">
-              <strong>Stok:</strong> {selectedBook.quantity}
-            </p>
-            <p className="text-sm text-gray-700 mb-4">
-              <strong>Deskripsi:</strong> {selectedBook.description}
-            </p>
 
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={() => setSelectedBook(null)}
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                Kembali
-              </button>
-              <button
-                onClick={() => handleBorrow(selectedBook.id)}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              >
-                Pinjam Sekarang
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+            {/* Modal */}
+            {selectedBook && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg w-full max-w-md relative">
+                        {/* ... (Konten Modal Anda) ... */}
+                        <button
+                            onClick={() => setSelectedBook(null)}
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <FontAwesomeIcon icon={faHandHolding} className="text-blue-600 text-xl" />
+                            <h2 className="text-lg font-bold text-gray-800">{selectedBook.title}</h2>
+                        </div>
+
+                        <p className="text-sm text-gray-700 mb-2">
+                            <strong>Penulis:</strong> {selectedBook.author}
+                        </p>
+                        <p className="text-sm text-gray-700 mb-2">
+                            <strong>Tahun:</strong> {selectedBook.publication_year}
+                        </p>
+                        <p className="text-sm text-gray-700 mb-2">
+                            <strong>Stok:</strong> {selectedBook.quantity}
+                        </p>
+                        <p className="text-sm text-gray-700 mb-4">
+                            <strong>Deskripsi:</strong> {selectedBook.description}
+                        </p>
+
+                        <div className="flex justify-between mt-6">
+                            <button
+                                onClick={() => setSelectedBook(null)}
+                                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                            >
+                                Kembali
+                            </button>
+                            <button
+                                onClick={() => handleBorrow(selectedBook.id)}
+                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                            >
+                                Pinjam Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }

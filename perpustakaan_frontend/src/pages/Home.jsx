@@ -1,3 +1,4 @@
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Brain, Zap, Heart } from "lucide-react"; 
 import { motion } from "framer-motion"; // <-- PASTIKAN INI DIIMPOR
@@ -6,22 +7,53 @@ import BookIllustration from './a.jpg';
 
 export default function Home() {
     const bookRecommendations = [
-        {
-            title: "Atomic Habits",
-            desc: "Bangun kebiasaan kecil yang menciptakan perubahan besar.",
-            icon: BookOpen,
-        },
-        {
-            title: "Deep Work",
-            desc: "Pelajari seni fokus mendalam di dunia yang penuh distraksi.",
-            icon: BookOpen,
-        },
-        {
-            title: "Ikigai",
-            desc: "Temukan alasan hidupmu dan jalani hari dengan makna.",
-            icon: BookOpen,
-        },
+    {
+        title: "Atomic Habits",
+        sinopsis: "Buku yang ngajarin gimana kebiasaan kecil bisa ngubah hidup jadi jauh lebih baik. Praktis, relatable, dan bikin kamu pengen mulai dari hal sederhana.",
+        icon: BookOpen,
+    },
+    {
+        title: "Deep Work",
+        sinopsis: "Panduan buat nemuin fokus di dunia yang serba cepat. Ngebantu kamu kerja lebih dalam, lebih tenang, dan hasilnya lebih berarti.",
+        icon: BookOpen,
+    },
+    {
+        title: "Ikigai",
+        sinopsis: "Perjalanan mencari alasan untuk bangun setiap pagi. Buku yang lembut tapi dalam, ngajak kamu mikir ulang soal kebahagiaan dan makna hidup.",
+        icon: BookOpen,
+    },
+    {
+        title: "The Subtle Art of Not Giving a F*ck",
+        sinopsis: "Cara jujur dan apa adanya buat ngadepin hidup. Bukan tentang cuek, tapi soal milih hal yang bener-bener penting buat kamu.",
+        icon: BookOpen,
+    },
+    {
+        title: "Think Again",
+        sinopsis: "Ngajarin pentingnya ngeragukan diri sendiri — bukan karena lemah, tapi karena dari sanalah kita tumbuh dan belajar lagi.",
+        icon: BookOpen,
+    },
+    {
+        title: "Man’s Search for Meaning",
+        sinopsis: "Kisah nyata yang nyentuh tentang gimana harapan dan makna bisa nyelamatin manusia, bahkan di masa tergelap.",
+        icon: BookOpen,
+    },
+    {
+        title: "The Mountain Is You",
+        sinopsis: "Tentang menghadapi diri sendiri dan belajar berdamai dengan luka. Buku reflektif yang bikin kamu pengen jadi versi terbaik dirimu.",
+        icon: BookOpen,
+    },
+    {
+        title: "Show Your Work!",
+        sinopsis: "Buat kamu yang pengen mulai berbagi karya tanpa takut. Buku ini ngajak kamu lebih berani, terbuka, dan autentik dalam berkarya.",
+        icon: BookOpen,
+    },
+    {
+        title: "The Psychology of Money",
+        sinopsis: "Cerita dan pelajaran sederhana tentang cara berpikir soal uang, keputusan, dan kebahagiaan tanpa jadi kaku atau serakah.",
+        icon: BookOpen,
+    },
     ];
+
 
     const benefitCards = [
         {
@@ -71,8 +103,71 @@ export default function Home() {
       visible: { opacity: 1, y: 0 }
     };
 
+
+    
+    const carouselRef = useRef(null);
+
+    // Hitung batas drag sekali saat komponen dimuat
+    useEffect(() => {
+        if (carouselRef.current) {
+            // scrollWidth: Total lebar semua kartu
+            // offsetWidth: Lebar viewport yang terlihat (maks-w-6xl)
+            setWidth(carouselRef.current.scrollWidth - carouselRef.current.offsetWidth);
+        }
+    }, []);
+    
+   // src/pages/Home.jsx (Definisi Komponen FlipCard)
+
+const FlipCard = ({ book }) => {
+    // 🔥🔥 STATE UNTUK MELACAK HOVER (BUKAN KLIK) 🔥🔥
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Gunakan isHovered sebagai kondisi flip
+    const isFlipped = isHovered; 
+
     return (
-        <div className="min-h-screen flex flex-col 
+        <motion.div
+            // Layout dan Events
+            className="snap-start w-full h-full relative" 
+            // 🔥 GANTI onClick dengan onMouseEnter dan onMouseLeave 🔥
+            onMouseEnter={() => setIsHovered(true)} 
+            onMouseLeave={() => setIsHovered(false)}
+            style={{ perspective: "1000px", height: "450px" }} 
+            whileHover={{ scale: 1.01 }} 
+        >
+            {/* Bagian Depan Kartu: COVER */}
+            <motion.div
+                className="absolute w-full h-full bg-gray-900 border border-gray-700 rounded-xl cursor-pointer 
+                           flex flex-col justify-center items-center p-4 backface-hidden" 
+                // Rotasi berdasarkan isHovered
+                animate={{ rotateY: isFlipped ? 180 : 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                style={{ zIndex: isFlipped ? 0 : 1 }} 
+            >
+                {/* Konten Cover */}
+                <div className="h-full w-full flex items-center justify-center">
+                    <book.icon className="text-blue-800" size={48} />
+                </div>
+            </motion.div>
+
+            {/* Bagian Belakang Kartu: SINOPSIS */}
+            <motion.div
+                // Rotasi terbalik berdasarkan isHovered
+                className="absolute w-full h-full bg-blue-800 text-white rounded-xl cursor-pointer 
+                           flex flex-col p-6 backface-hidden overflow-y-auto"
+                animate={{ rotateY: isFlipped ? 0 : -180 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                style={{ zIndex: isFlipped ? 1 : 0 }} 
+            >
+                <h3 className="text-xl font-bold text-white mb-2 border-b pb-1">{book.title}</h3>
+                <p className="text-xl leading-relaxed flex-grow">{book.sinopsis || "Sinopsis tidak tersedia."}</p>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+    return (
+        <div className="min-h-screen flex flex-col overflow-x-hidden 
                         bg-gradient-to-br
                         text-gray-900">
 
@@ -169,52 +264,27 @@ export default function Home() {
 
             {/* 2. REKOMENDASI SECTION (Diatur agar rapat dan sejajar) */}
             <motion.section 
-                className="py-12 md:py-20 px-6 "
-                initial="hidden"
-                whileInView="visible" 
-                variants={sectionVariants}
-                viewport={{ once: true, amount: 0.2 }} 
+                className="py-12 md:py-20 px-6 text-center border-t-2 border-gray-200"
             >
-
-                <div className="max-w-6xl mx-auto w-full mb-8 md:mb-10">
-                    
-                    {/* Baris 1: Judul di Tengah (Mengambil Seluruh Lebar) */}
-                    <motion.h1 
-                        initial={{ opacity: 0, y: -20 }} 
-                        whileInView={{ opacity: 1, y: 0 }} // <-- 🔥 AKTIF SETIAP KALI TERLIHAT 🔥
-                        transition={{ duration: 0.6, delay: 0.3 }} 
-                        className="text-4xl text-center md:text-5xl font-extrabold mb-4 leading-tight tracking-tighter" 
-                    > 
-                        Rekomendasi Buku
-                    </motion.h1> 
-                </div>        
-
-                {/* Grid Card Rekomendasi: Menggunakan grid-cols-3 dan gap-3 yang rapat */}
-                <div className="grid grid-cols-3 gap-3 max-w-6xl mx-auto">
+            {/* Header Section (Judul dan Tombol Katalog) */}
+            <div className="max-w-6xl mx-auto mb-8 md:mb-10">
+                <h2 className="text-3xl md:text-4xl  text-center font-extrabold">
+                    Rekomendasi Buku
+                </h2>
+            </div>
+            {/* CONTAINER SCROLLABLE CSS MURNI */}
+            <div className="max-w-6xl mx-auto"> 
+                <div
+                    className="flex gap-4 overflow-x-scroll snap-x snap-mandatory pb-4 scroll-smooth no-scrollbar mr-[-20px]" 
+                >
                     {bookRecommendations.map((book, i) => (
-                        <motion.div
-                            key={i}
-                            variants={cardVariants}
-                            // Menggunakan col-span-1 min-w-0 agar mirip struktur di atas
-                            className="col-span-1 min-w-0 text-left" 
-                        >
-                            {/* 1. KOTAK CARD BUKU (Representasi Cover Buku - Hitam) */}
-                            <motion.div
-                                className="bg-gray-900 border border-gray-700 h-96 rounded-md cursor-pointer 
-                                           mb-5 flex items-center justify-center overflow-hidden" 
-                            >
-                                {/* Ikon di tengah "cover" */}
-                                <book.icon className="text-blue-800" size={48} />
-                            </motion.div>
-
-                            {/* 2. JUDUL DAN SUB-HEADLINE (DI BAWAH CARD) */}
-                            {/* Font size lebih kecil agar tidak makan tempat dan rapat */}
-                            <h2 className="text-2xl font-bold mb-1">{book.title}</h2>
-                            <p className="text-gray-600 text-base">{book.desc}</p>
-
-                        </motion.div>
+                        // 🔥 Ganti div lama dengan panggilan FlipCard 🔥
+                        <div key={i} className="snap-start flex-shrink-0 w-[calc((100%/3)-10px)]"> 
+                            <FlipCard book={book} />
+                        </div>
                     ))}
                 </div>
+            </div>
             </motion.section>
 
             {/* ------------------------------------------------------------- */}

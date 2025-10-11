@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { BookOpen, History, DollarSign } from 'lucide-react';
+import { BookOpen, History, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import Sidebar from '../../components/Sidebar.jsx';
 import BookCatalog from './BookCatalog';
 import LoanHistory from './LoanHistory';
-import Fines from './Fines';
+import ProfilePage from './Profile';
 
 const sidebarMenus = [
   { name: 'Buku', path: 'buku', icon: BookOpen, component: BookCatalog },
   { name: 'Histori Pinjaman', path: 'histori', icon: History, component: LoanHistory },
-  { name: 'Denda', path: 'denda', icon: DollarSign, component: Fines },
+  { name: 'Profile', path: 'profile', icon: User, component: ProfilePage },
 ];
 
 export default function DashboardPeminjam() {
