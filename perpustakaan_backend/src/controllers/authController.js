@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import pool from '../db.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { registerSchema, loginSchema } from '../validators/authValidator.js';
 import { addRefreshToken, removeRefreshTokenForUser } from '../utils/refreshHelper.js';

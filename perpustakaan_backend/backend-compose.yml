@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: perpustakaan
+    ports:
+      - "3306:3306"
+    networks:
+      - perpustakaan-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ""
+    ports:
+      - "8080:80"
+    networks:
+      - perpustakaan-net
+    depends_on:
+      - mysql
+
+  backend:
+    build: .
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "3000:3000"
+    networks:
+      - perpustakaan-net
+    depends_on:
+      - mysql
+
+networks:
+  perpustakaan-net:
+    external: true
