@@ -4,7 +4,8 @@ import {
   approveBorrowing,       // admin menyetujui
   rejectBorrowing,        // admin menolak
   returnBorrowing,        // admin mengembalikan buku
-  getUserBorrowings       // user melihat histori peminjaman
+  getUserBorrowings,      // user melihat histori peminjaman
+  getUserFines            // user melihat denda
 } from '../controllers/borrowingsController.js';
 
 import { authUser, authAdmin } from '../middlewares/authMiddleware.js';
@@ -25,5 +26,8 @@ router.patch('/borrowings/:id/return', authAdmin, returnBorrowing);
 
 // 🔹 User melihat semua riwayat peminjaman miliknya
 router.get('/borrowings/mine', authUser, getUserBorrowings);
+
+// 🔹 User melihat daftar denda
+router.get('/fines/mine', authUser, getUserFines);
 
 export default router;

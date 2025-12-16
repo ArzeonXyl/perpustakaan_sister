@@ -16,10 +16,6 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    book_id: { // 🆕 Tambahkan book_id
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
     fine_date: {
       type: DataTypes.DATEONLY,
       allowNull: false
@@ -45,10 +41,6 @@ export default (sequelize, DataTypes) => {
     paid_date: {
       type: DataTypes.DATEONLY,
       allowNull: true
-    },
-    notes: { // 🆕 Tambahkan notes
-      type: DataTypes.TEXT,
-      allowNull: true
     }
   }, {
     tableName: 'fines',
@@ -57,6 +49,11 @@ export default (sequelize, DataTypes) => {
     updatedAt: 'updated_at',
     underscored: true
   });
+
+  Fines.associate = (models) => {
+    Fines.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
+    Fines.belongsTo(models.Borrowings, { foreignKey: 'borrowing_id', as: 'borrowing' });
+  };
 
   return Fines;
 };

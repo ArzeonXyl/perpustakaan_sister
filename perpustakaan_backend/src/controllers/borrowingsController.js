@@ -143,3 +143,24 @@ export const getUserBorrowings = async (req, res) => {
     res.status(500).json({ error: 'Gagal mengambil data peminjaman' });
   }
 };
+
+// 🔹 User melihat daftar denda
+export const getUserFines = async (req, res) => {
+  try {
+    const fines = await db.Fines.findAll({
+      where: { user_id: req.user.id },
+      include: [
+        { 
+          model: db.Borrowings, 
+          as: 'borrowing',
+          include: [{ model: db.Book, as: 'book' }]
+        }
+      ],
+      order: [['created_at', 'DESC']],
+    });
+    res.json(fines);
+  } catch (err) {
+    console.error('❌ Error saat mengambil data denda:', err.message);
+    res.status(500).json({ error: 'Gagal mengambil data denda' });
+  }
+};
