@@ -47,8 +47,8 @@ export default function LoginForm() {
           case "admin":
             // Jika admin login di frontend user, arahkan ke dashboard admin
             // Pastikan URL-nya benar (biasanya beda port atau path)
-            window.location.href = "http://localhost:3000/admin"; 
-            break;
+            window.location.replace = "http://localhost:3000/admin";
+            return;
           case "peminjam":
             navigate("/dashboard"); // Atau halaman histori
             break;

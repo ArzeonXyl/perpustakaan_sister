@@ -2,31 +2,46 @@
 import express from 'express';
 const router = express.Router();
 
-import { register, login, logout, refreshToken } from '../controllers/authController.js';
-import { authMiddleware, requireRole } from '../middlewares/authMiddleware.js';
+import {
+  register,
+  login,
+  logout,
+  refreshToken,
+} from '../controllers/authController.js';
 
-// public routes
-router.post('/register', register);       // buat peminjam
-router.post('/login', login);             // login admin/peminjam
+import {
+  authMiddleware,
+  requireRole,
+} from '../middlewares/authMiddleware.js';
+
+// =====================
+// PUBLIC ROUTES
+// =====================
+router.post('/register', register);
+router.post('/login', login);
 router.post('/refresh', refreshToken);
+
+// 🔥 LOGOUT SUPPORT GET + POST (ADMINJS & FRONTEND)
+router.get('/logout', logout);
 router.post('/logout', logout);
 
-// protected example
+// =====================
+// PROTECTED ROUTES
+// =====================
 router.get('/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
 
-// admin-only route
-router.get('/admin/dashboard', authMiddleware, requireRole('admin'), (req, res) => {
-  res.json({ message: 'Welcome admin' });
-});
-
-// custom logout route untuk admin
-router.get('/admin/logout', (req, res) => {
-  res.clearCookie('token');      
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
-  res.redirect('http://localhost:5173/login'); // arahkan ke frontend login
-});
+// =====================
+// ADMIN ONLY
+// =====================
+router.get(
+  '/admin/dashboard',
+  authMiddleware,
+  requireRole('admin'),
+  (req, res) => {
+    res.json({ message: 'Welcome admin' });
+  }
+);
 
 export default router;
