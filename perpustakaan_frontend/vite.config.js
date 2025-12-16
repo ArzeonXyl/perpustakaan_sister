@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import tailwindcss from 'tailwindcss';
 
 // 👇 GANTI BAGIAN INI SAJA 👇
-const IS_DOCKER = false; // Ubah ke true jika pakai Docker
+const IS_DOCKER = true; // Ubah ke true jika pakai Docker
 // 👆 --------------------- 👆
 
 // Logika otomatis memilih target
