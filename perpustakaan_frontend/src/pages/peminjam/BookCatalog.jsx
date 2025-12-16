@@ -8,7 +8,7 @@ import {
     faAtlas,
     faScroll,
     faHandHolding,
-    faSearch, // 🔥 IMPOR IKON SEARCH DARI FONT AWESOME 🔥
+    faSearch,
 } from '@fortawesome/free-solid-svg-icons';
 
 const icons = [faBook, faBookOpen, faBookReader, faJournalWhills, faAtlas, faScroll];
@@ -16,12 +16,11 @@ const icons = [faBook, faBookOpen, faBookReader, faJournalWhills, faAtlas, faScr
 export default function BookCatalog() {
     const [books, setBooks] = useState([]);
     const [selectedBook, setSelectedBook] = useState(null);
-    const [searchTerm, setSearchTerm] = useState(''); // State untuk kunci pencarian
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchBooks = async () => {
             try {
-                // ... (Logika fetchBooks Anda) ...
                 const res = await fetch('/api/list-book', {
                     method: 'GET',
                     credentials: 'include',
@@ -40,7 +39,6 @@ export default function BookCatalog() {
 
     const handleBorrow = async (bookId) => {
         try {
-            // ... (Logika handleBorrow Anda) ...
             const res = await fetch('/api/borrowings/request', {
                 method: 'POST',
                 credentials: 'include',
@@ -56,6 +54,9 @@ export default function BookCatalog() {
             console.log('✅ Berhasil pinjam:', result);
             alert('Buku berhasil dipinjam!');
             setSelectedBook(null);
+            
+            // Opsional: Refresh buku setelah meminjam agar stok terupdate di tampilan
+            // fetchBooks(); 
         } catch (err) {
             console.error('❌ Error saat pinjam:', err);
             alert('Gagal meminjam buku.');
@@ -64,23 +65,20 @@ export default function BookCatalog() {
 
     // 🔥 LOGIKA FILTERING BUKU 🔥
     const filteredBooks = books.filter(book => {
-      const query = searchTerm.toLowerCase().trim(); // Tambahkan trim() untuk hapus spasi
-      
-      if (!query) {
-          return true; // Tampilkan semua buku jika search term kosong
-      }
+        const query = searchTerm.toLowerCase().trim();
+        
+        if (!query) {
+            return true;
+        }
 
-      // Fungsi helper untuk mendapatkan nilai string yang aman
-      const safeString = (value) => String(value || '').toLowerCase();
+        const safeString = (value) => String(value || '').toLowerCase();
 
-      // Lakukan pencarian di tiga kolom: title, author, description
-      return (
-          safeString(book.title).includes(query) ||
-          safeString(book.author).includes(query) 
-      );
+        return (
+            safeString(book.title).includes(query) ||
+            safeString(book.author).includes(query) 
+        );
     });
 
-    // Logika pengelompokan buku (chunking) diubah untuk menggunakan filteredBooks
     const chunkedBooks = [];
     for (let i = 0; i < filteredBooks.length; i += 6) {
         chunkedBooks.push(filteredBooks.slice(i, i + 6));
@@ -91,7 +89,7 @@ export default function BookCatalog() {
 
     return (
         <>
-            {/* 🔥 SEARCH INPUT FIELD (Menggunakan Font Awesome) 🔥 */}
+            {/* SEARCH INPUT */}
             <div className="mb-6 flex items-center p-3 border border-gray-300 rounded-xl bg-gray-50 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition duration-200">
                 <FontAwesomeIcon icon={faSearch} className="text-gray-500 mr-3" />
                 <input
@@ -103,7 +101,7 @@ export default function BookCatalog() {
                 />
             </div>
             
-            {/* Tampilan Buku (Menggunakan filteredBooks) */}
+            {/* TAMPILAN KATALOG BUKU */}
             {isLoading ? (
                 <div className="text-center py-10 text-gray-500">Memuat katalog buku...</div>
             ) : noResults ? (
@@ -132,7 +130,12 @@ export default function BookCatalog() {
                                         <div className="p-2">
                                             <h2 className="text-sm font-semibold text-gray-800 truncate">{book.title}</h2>
                                             <p className="text-xs text-gray-600 truncate">Penulis: {book.author}</p>
-                                            <p className="text-xs text-gray-600">Stok: {book.quantity}</p>
+                                            
+                                            {/* Indikator Stok di Card */}
+                                            <p className={`text-xs ${book.quantity > 0 ? 'text-gray-600' : 'text-red-500 font-bold'}`}>
+                                                Stok: {book.quantity}
+                                            </p>
+
                                             <button
                                                 onClick={() => setSelectedBook(book)}
                                                 className="mt-2 w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
@@ -148,12 +151,10 @@ export default function BookCatalog() {
                 </div>
             )}
 
-
-            {/* Modal */}
+            {/* MODAL DETAIL BUKU */}
             {selectedBook && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg w-full max-w-md relative">
-                        {/* ... (Konten Modal Anda) ... */}
                         <button
                             onClick={() => setSelectedBook(null)}
                             className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
@@ -172,9 +173,15 @@ export default function BookCatalog() {
                         <p className="text-sm text-gray-700 mb-2">
                             <strong>Tahun:</strong> {selectedBook.publication_year}
                         </p>
+                        
+                        {/* Highlight Stok di Modal */}
                         <p className="text-sm text-gray-700 mb-2">
-                            <strong>Stok:</strong> {selectedBook.quantity}
+                            <strong>Stok:</strong> 
+                            <span className={selectedBook.quantity > 0 ? "ml-1" : "ml-1 text-red-600 font-bold"}>
+                                {selectedBook.quantity}
+                            </span>
                         </p>
+                        
                         <p className="text-sm text-gray-700 mb-4">
                             <strong>Deskripsi:</strong> {selectedBook.description}
                         </p>
@@ -186,12 +193,28 @@ export default function BookCatalog() {
                             >
                                 Kembali
                             </button>
-                            <button
-                                onClick={() => handleBorrow(selectedBook.id)}
-                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                            >
-                                Pinjam Sekarang
-                            </button>
+
+                            {/* 🔥 LOGIKA TOMBOL PINJAM 🔥 */}
+                            {selectedBook.quantity > 0 ? (
+                                <button
+                                    onClick={() => handleBorrow(selectedBook.id)}
+                                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                                >
+                                    Pinjam Sekarang
+                                </button>
+                            ) : (
+                                <button
+                                    disabled
+                                    className="bg-red-500 text-white px-4 py-2 rounded cursor-not-allowed opacity-80"
+                                    title="Stok buku ini sedang habis, tidak dapat dipinjam."
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        alert("Maaf, stok buku ini sedang kosong. Tidak dapat melakukan peminjaman.");
+                                    }}
+                                >
+                                    Stok Habis
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -199,3 +222,6 @@ export default function BookCatalog() {
         </>
     );
 }
+
+
+

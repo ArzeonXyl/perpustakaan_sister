@@ -1,5 +1,6 @@
 import { useState } from "react";
-import api from "../services/api";
+// 👇 Pastikan path ini sesuai dengan lokasi file api.js kamu
+import api from "../services/api"; 
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,115 +13,128 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log("Kirim body:", { email, password });
+      // 1. Kirim request login
+      const res = await api.post("/login", { email, password });
 
-      const res = await api.post("/login", { email, password }, {
-        withCredentials: true,
-      });
+      console.log("Login Success:", res.data);
 
-      console.log("Response:", res.data);
+      // 2. Ambil data dari response backend
+      // Backend mengirim: { token, role, user, redirect, message }
+      const { token, role, user, redirect } = res.data;
 
-      const { token, role, redirect, user } = res.data;
+      // 3. 🚨 SIMPAN TOKEN (Wajib untuk User Frontend)
+      // Ini yang akan dibaca oleh interceptor di services/api.js
+      if (token) {
+        localStorage.setItem("token", token);
+      }
 
-      // ✅ Simpan token untuk PrivateRoute
-      localStorage.setItem("token", token);
+      // 4. Simpan data user lainnya (Opsional, buat UI/Profile)
+      if (user) {
+        localStorage.setItem("userRole", role);
+        localStorage.setItem("userName", user.name);
+        localStorage.setItem("userEmail", user.email);
+      }
 
-      // ✅ Simpan info user (opsional)
-      localStorage.setItem("userRole", role);
-      localStorage.setItem("userEmail", user.email);
-      localStorage.setItem("userName", user.name);
+      // 5. Redirect User sesuai Role/Response
+      // Alert sukses bisa dihapus jika ingin langsung pindah
+      // alert("Login Berhasil!");
 
-      // ✅ Redirect sesuai role
       if (redirect) {
         navigate(redirect);
       } else {
+        // Fallback redirect manual jika backend tidak kirim properti 'redirect'
         switch (role) {
           case "admin":
-            navigate("/admin");
+            // Jika admin login di frontend user, arahkan ke dashboard admin
+            // Pastikan URL-nya benar (biasanya beda port atau path)
+            window.location.href = "http://localhost:3000/admin"; 
             break;
           case "peminjam":
-            navigate("/peminjam/dashboard");
+            navigate("/dashboard"); // Atau halaman histori
             break;
           default:
-            navigate("/dashboard");
+            navigate("/");
         }
       }
 
     } catch (err) {
       console.error("Login error:", err);
-      alert(err.response?.data?.error || "Login gagal");
+      const errorMsg = err.response?.data?.error || "Terjadi kesalahan saat login";
+      alert(errorMsg);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm border border-gray-200">
-      <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Login ke RumaBaca</h2>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm border border-gray-200">
+        <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Login ke RumaBaca</h2>
 
-      {/* Email */}
-      <div className="mb-4">
-        <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Email</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="Masukkan email Anda"
-          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-
-      {/* Password */}
-      <div className="mb-6">
-        <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-        <div className="relative">
-          <input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Masukkan password Anda"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+        {/* Email */}
+        <div className="mb-4">
+            <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+            <input
+            id="email"
+            type="email"
+            placeholder="Masukkan email Anda"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+            />
         </div>
-      </div>
 
-      {/* Tombol Login */}
-      <button
-        type="submit"
-        className="w-full bg-blue-700 text-white font-semibold py-3 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-      >
-        Login
-      </button>
+        {/* Password */}
+        <div className="mb-6">
+            <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+            <div className="relative">
+            <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Masukkan password Anda"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+            />
+            <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            </div>
+        </div>
 
-      {/* Tombol Kembali */}
-      <button
-        type="button"
-        onClick={() => navigate('/')}
-        className="w-full py-3 mt-3 text-gray-800/50"
-      >
-        Kembali ke Beranda
-      </button>
-
-      {/* Link Register */}
-      <p className="mt-6 text-center text-gray-600 text-sm">
-        Belum memiliki akun?{" "}
-        <a
-          href="/register"
-          className="text-blue-700 hover:text-blue-800 font-semibold transition duration-300"
+        {/* Tombol Login */}
+        <button
+            type="submit"
+            className="w-full bg-blue-700 text-white font-semibold py-3 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200"
         >
-          Daftar sekarang
-        </a>
-      </p>
-    </form>
+            Login
+        </button>
+
+        {/* Tombol Kembali */}
+        <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="w-full py-3 mt-3 text-gray-600 hover:text-gray-800 text-sm"
+        >
+            Kembali ke Beranda
+        </button>
+
+        {/* Link Register */}
+        <p className="mt-6 text-center text-gray-600 text-sm">
+            Belum memiliki akun?{" "}
+            <a
+            href="/register"
+            className="text-blue-700 hover:text-blue-800 font-semibold transition duration-300"
+            >
+            Daftar sekarang
+            </a>
+        </p>
+        </form>
+    </div>
   );
 }

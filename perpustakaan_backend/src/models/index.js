@@ -4,7 +4,7 @@ import BookModel from './book.js';
 import CategoryModel from './category.js';
 import UserModel from './user.js';
 import BorrowingsModel from './borrowings.js';
-
+import FinesModel from './Fines.js';
 
 
 
@@ -17,6 +17,7 @@ db.Book = BookModel(sequelize, DataTypes);
 db.Category = CategoryModel(sequelize, DataTypes);
 db.User = UserModel(sequelize, DataTypes);
 db.Borrowings = BorrowingsModel(sequelize, DataTypes);
+db.Fines = FinesModel(sequelize, DataTypes);
 
 Object.values(db).forEach(model => {
   if (model.associate) model.associate(db);

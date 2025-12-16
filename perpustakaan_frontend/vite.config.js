@@ -2,6 +2,16 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import tailwindcss from 'tailwindcss';
 
+// 👇 GANTI BAGIAN INI SAJA 👇
+const IS_DOCKER = false; // Ubah ke true jika pakai Docker
+// 👆 --------------------- 👆
+
+// Logika otomatis memilih target
+const targetBackend = IS_DOCKER ? 'http://backend:3000' : 'http://localhost:3000';
+
+console.log(`🔌 Mode: ${IS_DOCKER ? 'Docker' : 'Localhost'}`);
+console.log(`🎯 Proxy Target: ${targetBackend}`);
+
 export default defineConfig({
   plugins: [react()],
   css: {
@@ -10,20 +20,27 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0',   // wajib, supaya Vite bisa diakses dari host
-    port: 5173,        // port Vite
-    strictPort: true,  // fail jika port 5173 sudah dipakai
+    host: '0.0.0.0',   // Tetap 0.0.0.0 supaya aman untuk keduanya
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://backend:3000', // nama service backend di Docker network
+        target: targetBackend,
         changeOrigin: true,
         secure: false,
       },
       '/admin': {
-        target: 'http://backend:3000', // AdminJS juga di backend
+        target: targetBackend,
         changeOrigin: true,
         secure: false,
       },
+      // Tambahkan ini supaya Socket.IO tidak error
+      '/socket.io': {
+        target: targetBackend,
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
 });

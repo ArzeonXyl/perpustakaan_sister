@@ -8,7 +8,7 @@ import { registerSchema, loginSchema } from '../validators/authValidator.js';
 import { addRefreshToken, removeRefreshTokenForUser } from '../utils/refreshHelper.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '1d'; // ⚡ UBAH: Default 1 hari agar Admin tidak cepat logout
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7d';
 
@@ -82,8 +82,12 @@ export async function login(req, res) {
       secure: process.env.NODE_ENV === 'production',
     };
 
-    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 });
-    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 });
+    // ⚡ FIX UTAMA: Gunakan nama cookie 'token' agar konsisten dengan middleware AdminJS
+    // Dan perpanjang durasi menjadi 24 jam agar sesi tidak putus saat realtime update
+    res.cookie('token', accessToken, { ...cookieOptions, maxAge: 24 * 60 * 60 * 1000 });
+    
+    // Refresh token tetap
+    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     let redirectTo = '/dashboard';
     if (user.role === 'admin') redirectTo = '/admin';
@@ -92,6 +96,7 @@ export async function login(req, res) {
       message: 'Login berhasil',
       role: user.role,
       redirect: redirectTo,
+      token: accessToken, // Kirim token di body juga untuk Frontend User (Axios)
       user: {
         id: user.id,
         name: user.name,
@@ -119,26 +124,32 @@ export async function logout(req, res) {
       }
     }
 
-    res.clearCookie('accessToken', {
+    // ⚡ FIX: Clear cookie 'token' (bukan accessToken)
+    res.clearCookie('token', {
       httpOnly: true,
       sameSite: 'lax',
       secure: false,
     });
+    
     res.clearCookie('refreshToken', {
       httpOnly: true,
       sameSite: 'lax',
       secure: false,
     });
 
-    // ✅ Redirect ke frontend login
+    // Jika logout dari Admin, arahkan ke login
+    if (req.path.includes('admin') || req.headers.referer?.includes('/admin')) {
+        return res.redirect('/login'); // Atau URL login admin khusus jika ada
+    }
+
     return res.redirect('http://localhost:5173/login');
   } catch (err) {
     console.error('❌ Logout error:', err);
 
-    res.clearCookie('accessToken');
+    // Pastikan clear cookie berjalan meski error logic
+    res.clearCookie('token');
     res.clearCookie('refreshToken');
 
-    // ✅ Tetap redirect meskipun error
     return res.redirect('http://localhost:5173/login');
   }
 }
@@ -168,14 +179,15 @@ export async function refreshToken(req, res) {
     const user = userRows[0];
     const newAccess = signAccessToken(user);
 
-    res.cookie('accessToken', newAccess, {
+    // ⚡ FIX: Update cookie 'token'
+    res.cookie('token', newAccess, {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60,
+      maxAge: 24 * 60 * 60 * 1000, // 24 Jam
     });
 
-    return res.json({ message: 'Access token diperbarui' });
+    return res.json({ message: 'Access token diperbarui', token: newAccess });
   } catch (err) {
     console.error('❌ Refresh token error:', err);
     return res.status(401).json({ error: 'Invalid or expired token' });

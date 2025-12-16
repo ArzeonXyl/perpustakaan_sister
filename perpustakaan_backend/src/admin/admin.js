@@ -1,121 +1,26 @@
+// src/admin/admin.js
 import AdminJS from 'adminjs';
 import AdminJSExpress from '@adminjs/express';
 import AdminJSSequelize from '@adminjs/sequelize';
-import { ComponentLoader } from 'adminjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
 
 import db from '../models/index.js';
 import UserResource from './resources/UserResource.js';
 import CategoryResource from './resources/CategoryResource.js';
+import BorrowingsResource from './resources/BorrowingsResource.js';
+import FinesResource from './resources/FinesResource.js';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware.js';
+
+import componentLoader, { Components } from './componentLoader.js';
 
 AdminJS.registerAdapter(AdminJSSequelize);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 🔧 Setup ComponentLoader
-const componentLoader = new ComponentLoader();
-
-// 📦 Load Dashboard Component
-const dashboardComponent = componentLoader.add(
-  'Dashboard',
-  path.join(__dirname, './components/Dashboard.jsx')
-);
-
-// 📦 Load TopBar Component
-const topBarComponent = componentLoader.add(
-  'TopBarWithLogout',
-  path.join(__dirname, './components/TopBarWithLogout.jsx')
-);
-
-// ✅ Define Borrowings resource with approval logic
-const BorrowingsResource = {
-  resource: db.Borrowings,
-  options: {
-    navigation: 'Transaksi',
-    actions: {
-      returnBook: {
-        actionType: 'record',
-        icon: 'Undo',
-        label: 'Kembalikan Buku',
-        isVisible: ({ record }) =>
-          ['Dipinjam', 'Terlambat'].includes(record?.params?.status),
-        handler: async (req, res, context) => {
-          const { record } = context;
-          const today = new Date();
-          const dueDate = new Date(record.param('due_date'));
-
-          let status = 'Dikembalikan';
-          let fine = 0;
-
-          if (today > dueDate) {
-            status = 'Terlambat';
-            const daysLate = Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24));
-            fine = daysLate * 1000;
-          }
-
-          await record.update({
-            return_date: today,
-            status,
-            fine_amount: fine,
-          });
-
-          return {
-            record: record.toJSON(),
-            notice: {
-              message: `Buku berhasil dikembalikan. Status: ${status}, Denda: Rp${fine}`,
-              type: 'success',
-            },
-          };
-        },
-      },
-
-      approveRequest: {
-        actionType: 'record',
-        icon: 'Check',
-        label: 'Setujui Peminjaman',
-        guard: 'Yakin ingin menyetujui peminjaman ini?',
-        isVisible: ({ record }) => record?.params?.status === 'Menunggu Persetujuan',
-        handler: async (req, res, context) => {
-          const { record } = context;
-          await record.update({ status: 'Dipinjam' });
-
-          return {
-            record: record.toJSON(),
-            notice: {
-              message: 'Peminjaman disetujui',
-              type: 'success',
-            },
-          };
-        },
-      },
-
-      rejectRequest: {
-        actionType: 'record',
-        icon: 'Close',
-        label: 'Tolak Peminjaman',
-        guard: 'Yakin ingin menolak peminjaman ini?',
-        isVisible: ({ record }) => record?.params?.status === 'Menunggu Persetujuan',
-        handler: async (req, res, context) => {
-          const { record } = context;
-          await record.update({ status: 'Ditolak' });
-
-          return {
-            record: record.toJSON(),
-            notice: {
-              message: 'Peminjaman ditolak',
-              type: 'error',
-            },
-          };
-        },
-      },
-    },
-  },
-};
-
-// ✅ Define Book resource
+// Resource Buku Custom
 const bookResource = {
   resource: db.Book,
   options: {
@@ -135,25 +40,82 @@ const bookResource = {
 };
 
 const setupAdmin = async (app) => {
+  console.log('🔄 Setting up AdminJS...');
+  
+  // 1. Serve Folder Public
+  // Agar browser bisa mengakses file /admin-socket.js yang kita buat di atas
+  app.use(express.static(path.join(__dirname, '../public')));
+  
   const adminJs = new AdminJS({
     rootPath: '/admin',
     resources: [
       UserResource,
       BorrowingsResource,
+      FinesResource,
       bookResource,
       CategoryResource,
     ],
     branding: {
-      companyName: 'ifno',
+      companyName: 'IFNO Perpustakaan',
       softwareBrothers: false,
-      components: {
-        TopBar: topBarComponent,
+      logo: false,
+      withMadeWithLove: false,
+      theme: {
+        colors: {
+          primary100: '#3498db',
+          primary80: '#5dade2',
+          primary60: '#85c1e9',
+          primary40: '#aed6f1',
+          primary20: '#d6eaf8',
+          grey100: '#1d1d1d',
+          grey80: '#454545',
+          grey60: '#7a7a7a',
+          grey40: '#bdbdbd',
+          grey20: '#e0e0e0',
+          white: '#ffffff',
+        }
       },
     },
     dashboard: {
-      component: dashboardComponent,
+      component: Components.Dashboard,
     },
-    componentLoader,
+    componentLoader, 
+    // 2. Inject Script ke Browser Admin
+    assets: {
+      styles: [],
+      scripts: [
+        '/socket.io/socket.io.js', // Library Client Socket.IO (Otomatis dari server)
+        '/admin-socket.js'         // Script Listener kita di folder public
+      ]
+    },
+    pages: {
+      stats: {
+        label: 'Statistik',
+        handler: async (req, res) => {
+          try {
+            const stats = await db.sequelize.query(`
+              SELECT 
+                (SELECT COUNT(*) FROM borrowings WHERE status = 'Menunggu Persetujuan') as pending_borrowings,
+                (SELECT COUNT(*) FROM borrowings WHERE status = 'Terlambat') as late_borrowings,
+                (SELECT COUNT(*) FROM fines WHERE paid_status = 'Belum Dibayar') as unpaid_fines,
+                (SELECT COALESCE(SUM(total_fine), 0) FROM fines WHERE paid_status = 'Belum Dibayar') as total_unpaid_amount,
+                (SELECT COALESCE(SUM(total_fine), 0) FROM fines WHERE paid_status = 'Sudah Dibayar') as total_paid_amount,
+                (SELECT COUNT(*) FROM users WHERE role = 'peminjam') as total_members,
+                (SELECT COUNT(*) FROM books) as total_books
+            `, { type: db.sequelize.QueryTypes.SELECT });
+            
+            return {
+              text: 'Statistik Sistem',
+              stats: stats[0]
+            };
+          } catch (error) {
+            console.error('Error fetching stats:', error);
+            return { text: 'Statistik Sistem', error: 'Gagal mengambil data' };
+          }
+        },
+        component: 'Dashboard'
+      }
+    }
   });
 
   const adminRouter = AdminJSExpress.buildRouter(adminJs);
@@ -162,15 +124,10 @@ const setupAdmin = async (app) => {
     '/admin',
     authMiddleware,
     requireRole('admin'),
-    (req, res, next) => {
-      adminJs.options.currentUser = {
-        email: req.user.email,
-        role: req.user.role,
-      };
-      next();
-    },
     adminRouter
   );
+  
+  console.log('✅ AdminJS setup completed');
 };
 
 export default setupAdmin;

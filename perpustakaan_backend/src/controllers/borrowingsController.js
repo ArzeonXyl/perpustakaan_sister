@@ -1,21 +1,19 @@
+// src/controllers/borrowingController.js
 import db from '../models/index.js';
+import { getIO } from '../socket.js'; // 👈 Import Socket
 
-// 🔹 User request peminjaman
+// 🔹 User Request (Stok BELUM berkurang)
 export const requestBorrowing = async (req, res) => {
   try {
     const user_id = req.user.id;
     const { book_id } = req.body;
 
-    if (!book_id) {
-      return res.status(400).json({ error: 'book_id wajib diisi' });
-    }
+    if (!book_id) return res.status(400).json({ error: 'Book ID wajib' });
 
+    // Cek ketersediaan buku (tapi jangan kurangi dulu)
     const book = await db.Book.findByPk(book_id);
     if (!book) return res.status(404).json({ error: 'Buku tidak ditemukan' });
-
-    if (book.quantity <= 0) {
-      return res.status(400).json({ error: 'Stok buku habis, tidak bisa dipinjam' });
-    }
+    if (book.quantity <= 0) return res.status(400).json({ error: 'Stok buku habis' });
 
     const today = new Date();
     const due = new Date();
@@ -30,15 +28,20 @@ export const requestBorrowing = async (req, res) => {
       fine_amount: 0.00,
     });
 
-    res.status(201).json({
-      message: 'Request peminjaman berhasil dikirim',
-      borrowing,
+    // 📡 Broadcast ke Admin: "Ada request baru!"
+    getIO().emit('dbUpdate', { 
+      type: 'new_request', 
+      message: `Peminjaman baru dari User ID ${user_id}` 
     });
+
+    res.status(201).json({ message: 'Request berhasil dikirim', borrowing });
   } catch (err) {
-    console.error('❌ Error saat request peminjaman:', err.message);
-    res.status(500).json({ error: 'Gagal membuat request peminjaman' });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
+
+// ... (sisanya sesuaikan, tapi logic utama ada di Admin Resource di bawah)
 
 // 🔹 Admin menyetujui peminjaman
 export const approveBorrowing = async (req, res) => {
