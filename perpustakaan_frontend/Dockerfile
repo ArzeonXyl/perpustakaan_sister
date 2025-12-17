@@ -1,17 +1,16 @@
-# Gunakan Node
-FROM node:20
+# Stage 1 - Build
+FROM node:20-alpine AS builder
 
 WORKDIR /app
-
-# Copy package.json dan install deps
 COPY package*.json ./
-RUN npm install
-
-# Copy semua source code
+RUN npm ci
 COPY . .
+RUN npm run build
 
-# Expose port Vite default (5173)
-EXPOSE 5173
+# Stage 2 - Serve
+FROM nginx:alpine
 
-# Jalankan dev server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

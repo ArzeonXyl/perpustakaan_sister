@@ -15,7 +15,7 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES || '1d';
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7d';
 
-const FRONTEND_URL = 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 /* ===============================
    JWT HELPERS

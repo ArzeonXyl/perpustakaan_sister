@@ -1,22 +1,18 @@
 // src/components/admin/Logout.jsx
-import React from "react";
+import React from 'react';
+import api from '@/services/api';
 
 export default function Logout() {
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:3000/logout", {
-        method: "POST",
-        credentials: "include", // penting supaya cookie JWT dihapus
-      });
+      await api.post('/logout');
 
-      const data = await res.json();
-      console.log(data.message); // Logout berhasil
+      localStorage.removeItem('token');
 
-      // redirect ke halaman login frontend (Vite)
-      window.location.href = "/login";
-    } catch (err) {
-      console.error("Logout gagal:", err);
-      alert("Logout gagal");
+      // Redirect ke halaman login frontend
+      window.location.href = '/login';
+    } catch {
+      alert('Logout gagal');
     }
   };
 

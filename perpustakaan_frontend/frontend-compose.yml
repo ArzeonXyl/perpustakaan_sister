@@ -2,19 +2,13 @@ version: '3.9'
 
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"  # Vite dev server
+      - "80:80"
     networks:
       - perpustakaan-net
-    volumes:
-      - .:/app   # live reload
-      - /app/node_modules
-    command: npm run dev
 
 networks:
   perpustakaan-net:

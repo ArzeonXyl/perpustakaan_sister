@@ -1,17 +1,11 @@
-# backend Dockerfile
-FROM node:20
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package.json & package-lock.json dulu
 COPY package*.json ./
+RUN npm ci --only=production
 
-# Install deps di container
-RUN npm install
-
-# Copy sisa source code
 COPY . .
 
 EXPOSE 3000
-
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

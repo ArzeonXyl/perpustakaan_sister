@@ -1,46 +1,41 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import tailwindcss from 'tailwindcss';
 
-// 👇 GANTI BAGIAN INI SAJA 👇
-const IS_DOCKER = true; // Ubah ke true jika pakai Docker
-// 👆 --------------------- 👆
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
 
-// Logika otomatis memilih target
-const targetBackend = IS_DOCKER ? 'http://backend:3000' : 'http://localhost:3000';
+  const targetBackend = env.VITE_BACKEND_BASE_URL;
 
-console.log(`🔌 Mode: ${IS_DOCKER ? 'Docker' : 'Localhost'}`);
-console.log(`🎯 Proxy Target: ${targetBackend}`);
-
-export default defineConfig({
-  plugins: [react()],
-  css: {
-    postcss: {
-      plugins: [tailwindcss()],
-    },
-  },
-  server: {
-    host: '0.0.0.0',   // Tetap 0.0.0.0 supaya aman untuk keduanya
-    port: 5173,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: targetBackend,
-        changeOrigin: true,
-        secure: false,
+  return {
+    plugins: [react()],
+    css: {
+      postcss: {
+        plugins: [tailwindcss()],
       },
-      '/admin': {
-        target: targetBackend,
-        changeOrigin: true,
-        secure: false,
-      },
-      // Tambahkan ini supaya Socket.IO tidak error
-      '/socket.io': {
-        target: targetBackend,
-        ws: true,
-        changeOrigin: true,
-        secure: false,
-      }
     },
-  },
+    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      strictPort: true,
+      proxy: {
+        '/api': {
+          target: targetBackend,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/admin': {
+          target: targetBackend,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/socket.io': {
+          target: targetBackend,
+          ws: true,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  };
 });

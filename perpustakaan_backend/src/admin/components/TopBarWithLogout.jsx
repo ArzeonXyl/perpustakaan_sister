@@ -1,10 +1,12 @@
 import React from 'react';
 import { Box, Button, Icon, Text } from '@adminjs/design-system';
+import { BACKEND_BASE_URL } from '@/utils/config';
+
 
 const TopBarWithLogout = ({ toggleSidebar }) => {
   const handleLogout = () => {
     // HARD REDIRECT → cocok untuk AdminJS
-    window.location.href = 'http://localhost:3000/api/logout';
+    window.location.href = `${BACKEND_BASE_URL}/admin/logout`;
   };
 
   return (

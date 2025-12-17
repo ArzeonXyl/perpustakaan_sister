@@ -1,6 +1,8 @@
 // src/routes/logoutRoute.js
 import express from 'express';
 const router = express.Router();
+import dotenv from 'dotenv';
+dotenv.config();
 
 router.post('/logout', (req, res) => {
   res.clearCookie('accessToken', {
@@ -15,7 +17,7 @@ router.post('/logout', (req, res) => {
   });
 
   // ✅ Redirect ke frontend login page
-  res.redirect('http://localhost:5173/login');
+  res.redirect(`${process.env.FRONTEND_URL}/login`);
 });
 
 export default router;

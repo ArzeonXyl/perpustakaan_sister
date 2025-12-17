@@ -3,6 +3,7 @@ import { useState } from "react";
 import api from "../services/api"; 
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BACKEND_BASE_URL } from '@/utils/config';
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -47,7 +48,7 @@ export default function LoginForm() {
           case "admin":
             // Jika admin login di frontend user, arahkan ke dashboard admin
             // Pastikan URL-nya benar (biasanya beda port atau path)
-            window.location.replace = "http://localhost:3000/admin";
+            window.location.replace = `${BACKEND_BASE_URL}/admin`;
             return;
           case "peminjam":
             navigate("/dashboard"); // Atau halaman histori
